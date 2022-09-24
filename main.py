@@ -1,31 +1,41 @@
 import cv2
 import numpy as np
+from pyzbar.pyzbar import decode
 
-video = cv2.VideoCapture("vid.mp4")
+#img = cv2.imread('1.png')
+cap = cv2.VideoCapture("http://192.168.1.8:8080/video")
+cap.set(3,680)
+cap.set(4,480)
+
+with open('myDataFile.text') as f:
+    myDataList = f.read().splitlines()
 
 while True:
-    ret, frame = video.read()
-    if not ret:
-        video = cv2.VideoCapture("vid.mp4")
-        continue
-    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    low_black = np.array([0, 0, 0])
-    up_black = np.array([180, 50, 100])
-    mask = cv2.inRange(hsv, low_black, up_black)
-    edges = cv2.Canny(mask, 75, 150)
 
-    lines = cv2.HoughLinesP(edges, 1, np.pi/180, 50, maxLineGap=50)
-    if lines is not None:
-        for line in lines:
-            x1, y1, x2, y2 = line[0]
-            cv2.line(frame, (x1, y1), (x2, y2), (0, 255, 0), 5)
+    success, img = cap.read()
+    img = cv2.resize(img, (680, 480))
+    for barcode in decode(img):
+        myData = barcode.data.decode('utf-8')
+        print(myData)
 
+        #if myData in myDataList:
+        #    myOutput = 'Authorized'
+        #    myColor = (0,255,0)
+        #else:
+        #    myOutput = 'Un-Authorized'
+        #    myColor = (0, 0, 255)#
 
+        pts = np.array([barcode.polygon],np.int32)
+        pts = pts.reshape((-1,1,2))
+        cv2.polylines(img,[pts],True,(0,255,0),5)
+        pts2 = barcode.rect
+        cv2.putText(img,myData,(pts2[0],pts2[1]),cv2.FONT_HERSHEY_SIMPLEX,
+                    0.9,(0,255,0),2)
 
-    cv2.imshow("frames", frame)
-    cv2.imshow("edges", edges)
-    key = cv2.waitKey(1)
-    if key == 27:
+    cv2.imshow('Result',img)
+    cv2.waitKey(1)
+    if cv2.waitKey(1) & 0xff == ord('q'):  # 1 is the time in ms
         break
-video.release()
-cv2.destroyAllWindows()
+
+capture.release()
+cv2.destroyAllWindows
